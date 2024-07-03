@@ -25,20 +25,27 @@ class ClientHandler implements Runnable {
     private List<ClientHandler> clients;
     private PrintWriter out;
     private BufferedReader in;
+    private String clientName; // To store client's name
 
     public ClientHandler(Socket socket, List<ClientHandler> clients) throws IOException {
         this.clientSocket = socket;
         this.clients = clients;
         this.out = new PrintWriter(clientSocket.getOutputStream(), true);
         this.in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+        this.clientName = ""; // Initialize clientName
     }
 
     public void run() {
         try {
             String inputLine;
             while ((inputLine = in.readLine()) != null) {
-                for (ClientHandler aClient : clients) {
-                    aClient.out.println(inputLine);
+                if (inputLine.startsWith("[typing]")) {
+                    // Handle typing notification
+                    String userTyping = inputLine.substring("[typing]".length());
+                    broadcast(userTyping + " is typing...");
+                } else {
+                    // Regular message handling
+                    broadcast(inputLine);
                 }
             }
         } catch (IOException e) {
@@ -53,4 +60,11 @@ class ClientHandler implements Runnable {
             }
         }
     }
+
+    private void broadcast(String message) {
+        for (ClientHandler aClient : clients) {
+            aClient.out.println(message);
+        }
+    }
 }
+

@@ -7,12 +7,14 @@ public class ChatClient {
     private BufferedReader in;
     private PrintWriter out;
     private Consumer<String> onMessageReceived;
+    private String clientName; // To store client's name
 
     public ChatClient(String serverAddress, int serverPort, Consumer<String> onMessageReceived) throws IOException {
         this.socket = new Socket(serverAddress, serverPort);
         this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         this.out = new PrintWriter(socket.getOutputStream(), true);
         this.onMessageReceived = onMessageReceived;
+        this.clientName = ""; // Initialize clientName
     }
 
     public void sendMessage(String msg) {
@@ -39,7 +41,10 @@ public class ChatClient {
             BufferedReader consoleIn = new BufferedReader(new InputStreamReader(System.in));
             String userInput;
             while ((userInput = consoleIn.readLine()) != null) {
-                client.sendMessage(userInput);
+                if (!userInput.isEmpty()) {
+                    client.sendMessage("[typing]" + client.clientName);
+                    client.sendMessage(userInput);
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();

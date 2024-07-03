@@ -8,8 +8,11 @@ import java.util.Date;
 public class ChatClientGUI extends JFrame {
     private JTextArea messageArea;
     private JTextField textField;
-    private JButton exitButton;
+    private JLabel typingLabel; // To display typing indicator
+    private JButton sendButton; // Changed from exitButton to sendButton for message sending
     private ChatClient client;
+    private String name;
+    private boolean isTyping = false; // Variable to track typing state
 
     public ChatClientGUI() {
         super("Chat Application");
@@ -29,40 +32,60 @@ public class ChatClientGUI extends JFrame {
         JScrollPane scrollPane = new JScrollPane(messageArea);
         add(scrollPane, BorderLayout.CENTER);
 
-        String name = JOptionPane.showInputDialog(this, "Enter your name:", "Name Entry", JOptionPane.PLAIN_MESSAGE);
+        name = JOptionPane.showInputDialog(this, "Enter your name:", "Name Entry", JOptionPane.PLAIN_MESSAGE);
         this.setTitle("Chat Application - " + name);
         textField = new JTextField();
         textField.setFont(textFont);
         textField.setForeground(textColor);
         textField.setBackground(backgroundColor);
+
+        // Typing indicator label setup
+        typingLabel = new JLabel();
+        typingLabel.setFont(textFont.deriveFont(Font.ITALIC));
+        typingLabel.setForeground(Color.GRAY);
+        typingLabel.setVisible(false); // Initially invisible
+
         textField.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                String message = "[" + new SimpleDateFormat("HH:mm:ss").format(new Date()) + "] " + name + ": "
-                        + textField.getText();
-                client.sendMessage(message);
-                textField.setText("");
+                sendMessage();
             }
         });
-        exitButton = new JButton("Exit");
-        exitButton.setFont(buttonFont);
-        exitButton.setBackground(buttonColor);
-        exitButton.setForeground(Color.WHITE);
-        exitButton.addActionListener(e -> {
-            String departureMessage = name + " has left the chat.";
-            client.sendMessage(departureMessage);
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException ie) {
-                Thread.currentThread().interrupt();
+
+        textField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    e.consume(); // Consume enter key event to prevent line break in text field
+                    sendMessage();
+                }
+                if (!isTyping) {
+                    setTyping(true); // Set typing indicator on key press
+                }
             }
-            System.exit(0);
+
+            @Override
+            public void keyReleased(KeyEvent e) {
+                if (textField.getText().isEmpty()) {
+                    setTyping(false); // Reset typing indicator when text field is empty
+                }
+            }
+        });
+
+        sendButton = new JButton("Send");
+        sendButton.setFont(buttonFont);
+        sendButton.setBackground(buttonColor);
+        sendButton.setForeground(Color.WHITE);
+        sendButton.addActionListener(e -> {
+            sendMessage();
         });
 
         JPanel bottomPanel = new JPanel(new BorderLayout());
         bottomPanel.setBackground(backgroundColor);
         bottomPanel.add(textField, BorderLayout.CENTER);
-        bottomPanel.add(exitButton, BorderLayout.EAST);
+        bottomPanel.add(typingLabel, BorderLayout.SOUTH); // Add typing indicator label
+        bottomPanel.add(sendButton, BorderLayout.EAST); // Use sendButton for sending messages
         add(bottomPanel, BorderLayout.SOUTH);
+
         try {
             this.client = new ChatClient("127.0.0.1", 5000, this::onMessageReceived);
             client.startClient();
@@ -74,8 +97,42 @@ public class ChatClientGUI extends JFrame {
         }
     }
 
+    private void sendMessage() {
+        String messageText = textField.getText();
+        if (!messageText.isEmpty()) {
+            String message = "[" + new SimpleDateFormat("HH:mm:ss").format(new Date()) + "] " + name + ": "
+                    + messageText;
+            client.sendMessage(message);
+            textField.setText("");
+            typingLabel.setVisible(false); // Hide typing indicator after sending message
+            setTyping(false); // Reset typing indicator
+        }
+    }
+
     private void onMessageReceived(String message) {
-        SwingUtilities.invokeLater(() -> messageArea.append(message + "\n"));
+        SwingUtilities.invokeLater(() -> {
+            if (message.startsWith("[typing]")) {
+                String userTyping = message.substring("[typing]".length());
+                if (!userTyping.equals(name)) {
+                    typingLabel.setText(userTyping + " is typing...");
+                    typingLabel.setVisible(true);
+                }
+            } else {
+                if (message.contains(name + ": ")) {
+                    messageArea.append(message + "\n");
+                } else if (!isTyping) {
+                    messageArea.append(message + "\n");
+                    typingLabel.setVisible(false); // Hide typing indicator when message is received
+                }
+            }
+        });
+    }
+
+    private void setTyping(boolean typing) {
+        if (typing) {
+            client.sendMessage("[typing]" + name);
+        }
+        isTyping = typing;
     }
 
     public static void main(String[] args) {
