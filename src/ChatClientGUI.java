@@ -21,7 +21,6 @@ public class ChatClientGUI extends JFrame {
         Font textFont = new Font("Arial", Font.PLAIN, 14);
         Font buttonFont = new Font("Arial", Font.BOLD, 12);
 
-        // Initialize components
         messageArea = new JTextArea();
         messageArea.setEditable(false);
         messageArea.setBackground(backgroundColor);
@@ -30,53 +29,26 @@ public class ChatClientGUI extends JFrame {
         JScrollPane scrollPane = new JScrollPane(messageArea);
         add(scrollPane, BorderLayout.CENTER);
 
-        // Prompt for username and authenticate
-        String username = JOptionPane.showInputDialog(this, "Enter your username:", "Login", JOptionPane.PLAIN_MESSAGE);
-        String password = JOptionPane.showInputDialog(this, "Enter your password:", "Login", JOptionPane.PLAIN_MESSAGE);
-
-        try {
-            this.client = new ChatClient("127.0.0.1", 5000, this::onMessageReceived);
-            client.startClient();
-
-            // Perform authentication
-            boolean authenticated = client.authenticate("login", username, password);
-            if (!authenticated) {
-                JOptionPane.showMessageDialog(this, "Authentication failed. Exiting...", "Error",
-                        JOptionPane.ERROR_MESSAGE);
-                System.exit(1);
-            }
-
-            // Set window title
-            this.setTitle("Chat Application - " + client.getUsername());
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error connecting to the server", "Connection error",
-                    JOptionPane.ERROR_MESSAGE);
-            System.exit(1);
-        }
-
-        // Text field setup
+        String name = JOptionPane.showInputDialog(this, "Enter your name:", "Name Entry", JOptionPane.PLAIN_MESSAGE);
+        this.setTitle("Chat Application - " + name);
         textField = new JTextField();
         textField.setFont(textFont);
         textField.setForeground(textColor);
         textField.setBackground(backgroundColor);
         textField.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                String message = "[" + new SimpleDateFormat("HH:mm:ss").format(new Date()) + "] " +
-                        client.getUsername() + ": " + textField.getText();
+                String message = "[" + new SimpleDateFormat("HH:mm:ss").format(new Date()) + "] " + name + ": "
+                        + textField.getText();
                 client.sendMessage(message);
                 textField.setText("");
             }
         });
-
-        // Exit button setup
         exitButton = new JButton("Exit");
         exitButton.setFont(buttonFont);
         exitButton.setBackground(buttonColor);
         exitButton.setForeground(Color.WHITE);
         exitButton.addActionListener(e -> {
-            String departureMessage = client.getUsername() + " has left the chat.";
+            String departureMessage = name + " has left the chat.";
             client.sendMessage(departureMessage);
             try {
                 Thread.sleep(1000);
@@ -86,12 +58,20 @@ public class ChatClientGUI extends JFrame {
             System.exit(0);
         });
 
-        // Bottom panel setup
         JPanel bottomPanel = new JPanel(new BorderLayout());
         bottomPanel.setBackground(backgroundColor);
         bottomPanel.add(textField, BorderLayout.CENTER);
         bottomPanel.add(exitButton, BorderLayout.EAST);
         add(bottomPanel, BorderLayout.SOUTH);
+        try {
+            this.client = new ChatClient("127.0.0.1", 5000, this::onMessageReceived);
+            client.startClient();
+        } catch (IOException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error connecting to the server", "Connection error",
+                    JOptionPane.ERROR_MESSAGE);
+            System.exit(1);
+        }
     }
 
     private void onMessageReceived(String message) {
