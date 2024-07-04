@@ -1,3 +1,5 @@
+# ChatPulse
+
 ### This Java-based chat application features real-time typing indicators, allowing users to see when someone is typing a message. Inspired by the subtle yet impactful design of modern messaging apps, this project demonstrates how small features can enhance user experience.
 <img width="820" alt="image" src="https://github.com/juliuscecilia33/ChatPulse/assets/63413098/20235330-4b80-4b5c-9ed0-76dac94e17de">
 
